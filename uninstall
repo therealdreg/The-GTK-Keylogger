@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Authors:
+#
+# Abel Romero Pérez aka D1W0U - abel@abelromero.com - @diw0u - http://www.abelromero.com 
+# David Reguera García aka Dreg - dreg@fr33project.org - @fr33project - http://www.fr33project.org
+
+# test distro
+DISTRO=`lsb_release -si`
+# get arch
+ARCH=`uname -m`
+
+if [[ "$DISTRO" != "Ubuntu" ]]; then
+  if [[ "$DISTRO" != "Debian" ]]; then
+    if [[ "$DISTRO" != "openSUSE project" && "$DISTRO" != "openSUSE Leap" ]]; then
+      echo "This version only supports Ubuntu 16.04, Ubuntu 16.10, Debian 8.7 and openSUSE Leap 42.2"
+      exit
+    else
+
+      #
+      # Linux distribution is openSUSE
+      #
+      LIBDIR="/usr/lib64/"
+    fi
+  else
+
+    #
+    # Linux distribution is Debian
+    #
+    if [[ "$ARCH" == "x86_64" ]]; then
+      LIBDIR="/usr/lib/x86_64-linux-gnu/"
+    else
+      LIBDIR="/usr/lib/i386-linux-gnu/"
+    fi
+  fi
+else
+
+  #
+  # Linux distribution is Ubuntu
+  #
+  if [[ "$ARCH" == "x86_64" ]]; then
+    LIBDIR="/usr/lib/x86_64-linux-gnu/"
+  else
+    LIBDIR="/usr/lib/i386-linux-gnu/"
+  fi
+fi
+
+# unpatch libs
+echo "Uninstalling keylogger ..."
+LIBGTK2=$(basename `readlink -f $LIBDIR/libgtk-x11-2.0.so.0`)
+LIBGTK3=$(basename `readlink -f $LIBDIR/libgtk-3.so.0`)
+cp $LIBDIR/$LIBGTK2 .
+cp $LIBDIR/$LIBGTK3 .
+./deps/patchelf/src/patchelf --remove-needed libksutil-1.so.0 $LIBGTK2
+./deps/patchelf/src/patchelf --remove-needed libksutil-1.so.0 $LIBGTK3
+rm $LIBDIR/$LIBGTK2
+rm $LIBDIR/$LIBGTK3
+cp $LIBGTK2 $LIBGTK3 $LIBDIR
+rm $LIBGTK2 $LIBGTK3
+rm $LIBDIR/libksutil-1.so.0
+rm $LIBDIR/libasutil-1.so.0
+
+echo "done!"

