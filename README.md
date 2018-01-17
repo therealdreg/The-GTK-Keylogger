@@ -1,6 +1,7 @@
 The GTK Keylogger by:
 
 Abel Romero (aka D1W0U) @D1W0U, abel.romero@devopensource.com 
+
 David Reguera (aka Dreg) @fr33project, dreg@fr33project.org 
 
 --[ Table of contents
