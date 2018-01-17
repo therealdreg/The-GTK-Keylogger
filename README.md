@@ -1,11 +1,7 @@
-|=-----------------------------------------------------------------------=|
-|=-------------------------=[ The GTK Keylogger ]=-----------------------=|
-|=-----------------------------------------------------------------------=|
-|=-----------------------------------------------------------------------=|
-|=--=[ Abel Romero (aka D1W0U) @D1W0U, abel.romero@devopensource.com ]=--=|
-|=---=[ David Reguera (aka Dreg) @fr33project, dreg@fr33project.org ]=---=|
-|=-----------------------------------------------------------------------=|
+The GTK Keylogger by:
 
+Abel Romero (aka D1W0U) @D1W0U, abel.romero@devopensource.com 
+David Reguera (aka Dreg) @fr33project, dreg@fr33project.org 
 
 --[ Table of contents
 
@@ -453,7 +449,8 @@ give me his support.
 
 --[ 7. References
 
-[1] https://nixos.org/patchelf.html [2] https://github.com/NixOS/patchelf
+[1] https://nixos.org/patchelf.html 
+[2] https://github.com/NixOS/patchelf
 [3] https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f03/www/ftrace/elf.c
 [4] https://developer.gnome.org/gtk3/stable/gtk-building.html
 [5] https://github.com/GNOME/gtk/tree/master
