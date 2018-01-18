@@ -6,22 +6,21 @@ David Reguera (aka Dreg) @fr33project, dreg@fr33project.org
 
 --[ Table of contents
 
-1. Introduction
-2. Table of Keyloggers
-3. How the GTK keylogger works
-  3.1 The GTK+2 IM Contexts hooked
-  3.2 The GTK+3 IM Contexts hooked
-  3.3 The hooking technique
-    3.3.1 The hook in x86
-    3.3.2 The hook in x86_64
-  3.4 Infection
-  3.5 The problem with ld-config
-4. Given support
-5. How to test the GTK keylogger
-6. Greetings
-7. References
-8. Appendix: code
-
+1. Introduction  
+2. Table of Keyloggers  
+3. How the GTK keylogger works  
+&nbsp;&nbsp;3.1 The GTK+2 IM Contexts hooked  
+&nbsp;&nbsp;3.2 The GTK+3 IM Contexts hooked  
+&nbsp;&nbsp;3.3 The hooking technique  
+&nbsp;&nbsp;&nbsp;&nbsp;3.3.1 The hook in x86  
+&nbsp;&nbsp;&nbsp;&nbsp;3.3.2 The hook in x86_64  
+&nbsp;&nbsp;3.4 Infection  
+&nbsp;&nbsp;3.5 The problem with ld-config  
+4. Given support  
+5. How to test the GTK keylogger  
+6. Greetings  
+7. References  
+8. Appendix: code  
 
 --[ 1. Introduction
 
