@@ -1,8 +1,8 @@
 The GTK Keylogger by:
 
-Abel Romero Pérez (aka D1W0U) @diw0u, abel@abelromero.com, http://www.abelromero.com, https://github.com/D1W0U
+Abel Romero Pérez (aka D1W0U) @diw0u, abel@abelromero.com, http://www.abelromero.com , https://github.com/D1W0U
 
-David Reguera (aka Dreg) @fr33project, dreg@fr33project.org 
+David Reguera (aka Dreg) @fr33project, http://www.fr33project.org , dreg@fr33project.org 
 
 --[ Table of contents
 
@@ -406,7 +406,7 @@ done!
 
 --[ 6. Greetings
 
-Greetings to my brother LogicMan, to help me on my begginings and always
+diwou: Greetings to my brother LogicMan, to help me on my begginings and always
 give me his support.
 
 
@@ -432,4 +432,4 @@ give me his support.
 [19] https://github.com/zacscott/zedlog  
 [20] http://resources.infosecinstitute.com/keylogger/  
 [21] https://git.zx2c4.com/evdev-keylogger  
-[22] https://github.com/David-Reguera-Garcia-Dreg/libuiohook/tree/master/src/x11  
+[22] https://github.com/kwhat/libuiohook/tree/master/src/x11  
