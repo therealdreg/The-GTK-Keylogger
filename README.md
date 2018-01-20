@@ -198,7 +198,7 @@ It's located on the file `src/hook_entry_x86.S`.
 
 The first call which is located in the function to hook, always is a call
 to a function that moves to a register (ebx, eax, ecx, etc.) the value of
-the retaddrr of the next instruction on that call, to make a trick of
+the retaddr of the next instruction on that call, to make a trick of
 rip-relative and be able to work with the following lea. So, we hardcoded
 that instruction with a mov of the next address of the call.
 
@@ -284,7 +284,7 @@ popfq
 jmpq TRAMPOLINE_ADDRESS
 ```
 
-The trampoline in x64 rebuilds the lead, mov and push rip-relative.  And
+The trampoline in x64 rebuilds the lea, mov and push rip-relative.  And
 has the following structure:
 
 ```
