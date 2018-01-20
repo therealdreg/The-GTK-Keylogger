@@ -280,8 +280,8 @@ pushfq
 push REGISTERS
 call handler_in_C
 pop REGISTERS
-popfq jmpq
-TRAMPOLINE_ADDRESS
+popfq
+jmpq TRAMPOLINE_ADDRESS
 ```
 
 The trampoline in x64 rebuilds the lead, mov and push rip-relative.  And
@@ -312,7 +312,7 @@ gtk.
 When the application loads gtk, gtk loads us. Then we are in the context of
 the application.
 
-PatchEFL can be found on GitHub and is on the references section.
+PatchELF can be found on GitHub and is on the references section.
 
 
 --[ 3.5 The problem with ld-config
